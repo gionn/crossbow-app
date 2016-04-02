@@ -1,12 +1,25 @@
 package net.gionn.balestra;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
+
+import com.firebase.client.AuthData;
+import com.firebase.client.Firebase;
+import com.firebase.client.FirebaseError;
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.auth.api.signin.GoogleSignInResult;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+
 
 import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
@@ -16,16 +29,21 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.text.BreakIterator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-public class MainActivity extends AppCompatActivity
+public class MainActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener, View.OnClickListener
 {
-
+    private static final int RC_SIGN_IN = 9001;
     public static final BigDecimal STEP_FACTOR = new BigDecimal( "0.5" );
     public static final String DB_JSON = "db.json";
+    private static final String TAG = "ASD";
+    public static final String CLIENT_ID = "1041624389027-ttif7at9gskt1epcqv0uvge5rie4rql2.apps.googleusercontent.com";
     private Map<BigDecimal, BigDecimal> data = new HashMap<>();
+    private Firebase myFirebaseRef;
+    private GoogleApiClient googleApiClient;
 
     @Override
     protected void onCreate( Bundle savedInstanceState )
@@ -44,6 +62,25 @@ public class MainActivity extends AppCompatActivity
         {
             e.printStackTrace();
         }
+
+        // Configure sign-in to request the user's ID, email address, and basic
+        // profile. ID and basic profile are included in DEFAULT_SIGN_IN.
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .requestServerAuthCode( CLIENT_ID )
+                .build();
+
+        // Build a GoogleApiClient with access to the Google Sign-In API and the
+        // options specified by gso.
+        googleApiClient = new GoogleApiClient.Builder(this)
+                .enableAutoManage(this /* FragmentActivity */, this /* OnConnectionFailedListener */)
+                .addApi( Auth.GOOGLE_SIGN_IN_API, gso)
+                .build();
+
+        Firebase.setAndroidContext( this );
+        myFirebaseRef = new Firebase("https://luminous-torch-6494.firebaseio.com.firebaseio.com/");
+
+        findViewById(R.id.sign_in_button).setOnClickListener(this);
     }
 
     private void initJsonData( String resource )
@@ -92,6 +129,11 @@ public class MainActivity extends AppCompatActivity
         }
 
         return super.onOptionsItemSelected( item );
+    }
+
+    public void login( View view)
+    {
+
     }
 
     public void calculate( View view )
@@ -182,5 +224,77 @@ public class MainActivity extends AppCompatActivity
     private BigDecimal bigDecimalFactory( BigDecimal value )
     {
         return bigDecimalFactory( value.toString() );
+    }
+
+    @Override
+    public void onConnectionFailed( ConnectionResult connectionResult )
+    {
+
+    }
+
+    @Override
+    public void onClick( View v )
+    {
+        switch (v.getId()) {
+            case R.id.sign_in_button:
+                signIn();
+                break;
+            // ...
+        }
+    }
+
+    private void signIn() {
+        Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(googleApiClient);
+        startActivityForResult(signInIntent, RC_SIGN_IN);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        // Result returned from launching the Intent from GoogleSignInApi.getSignInIntent(...);
+        if (requestCode == RC_SIGN_IN) {
+            GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
+            handleSignInResult(result);
+        }
+    }
+
+    private void handleSignInResult(GoogleSignInResult result) {
+        Log.d( TAG, "handleSignInResult:" + result.isSuccess() + result.getStatus().getStatusCode() );
+        if (result.isSuccess()) {
+            // Signed in successfully, show authenticated UI.
+            GoogleSignInAccount acct = result.getSignInAccount();
+
+            myFirebaseRef.authWithOAuthToken("google", result.getSignInAccount().getServerAuthCode(), new Firebase.AuthResultHandler() {
+                @Override
+                public void onAuthenticated(AuthData authData) {
+                    // the Google user is now authenticated with your Firebase app
+                    Log.d( TAG, "onAuthenticated:" + authData.getUid() );
+                }
+                @Override
+                public void onAuthenticationError(FirebaseError firebaseError) {
+                    // there was an error
+                }
+            });
+
+
+            //mStatusTextView.setText( "Signed in as: " + acct.getDisplayName());
+            updateUI( true );
+        } else {
+            // Signed out, show unauthenticated UI.
+            updateUI( false );
+        }
+    }
+
+    private void updateUI(boolean signedIn) {
+        if (signedIn) {
+            findViewById(R.id.sign_in_button).setVisibility( View.GONE );
+            //findViewById(R.id.sign_out_and_disconnect).setVisibility( View.VISIBLE );
+        } else {
+            //mStatusTextView.setText("signed out");
+
+            findViewById(R.id.sign_in_button).setVisibility(View.VISIBLE);
+            //findViewById(R.id.sign_out_and_disconnect).setVisibility( View.GONE );
+        }
     }
 }
