@@ -9,6 +9,10 @@ import android.view.MenuItem;
 import android.widget.TextView;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
+import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
+import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -16,8 +20,10 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity
@@ -26,6 +32,9 @@ public class MainActivity extends AppCompatActivity
     public static final BigDecimal STEP_FACTOR = new BigDecimal( "0.5" );
     public static final String DB_JSON = "db.json";
     private Map<BigDecimal, BigDecimal> data = new HashMap<>();
+    private List<Double> distanceList = new ArrayList<>();
+    private List<Double> correctionList = new ArrayList<>();
+    private PolynomialSplineFunction splineFunction;
 
     @Override
     protected void onCreate( Bundle savedInstanceState )
@@ -44,6 +53,14 @@ public class MainActivity extends AppCompatActivity
         {
             e.printStackTrace();
         }
+
+        splineFunction = new SplineInterpolator().interpolate( toDoubleArray( distanceList ), toDoubleArray( correctionList ) );
+    }
+
+    private double[] toDoubleArray( List<Double> list)
+    {
+        Double[] doubles = list.toArray( new Double[list.size()] );
+        return ArrayUtils.toPrimitive( doubles );
     }
 
     private void initJsonData( String resource )
@@ -59,6 +76,9 @@ public class MainActivity extends AppCompatActivity
                 BigDecimal key = bigDecimalFactory( dataArray.getDouble( 0 ) );
                 BigDecimal value = bigDecimalFactory( dataArray.getDouble( 1 ) );
                 data.put( key, value );
+                // spline
+                distanceList.add( key.doubleValue() );
+                correctionList.add( value.doubleValue() );
             }
         }
         catch ( JSONException e )
@@ -119,7 +139,7 @@ public class MainActivity extends AppCompatActivity
 
         BigDecimal value = data.get( lookup );
         if ( value == null)
-            value = getOrNear( lookup.subtract( STEP_FACTOR ) );
+            value = bigDecimalFactory( splineFunction.value( lookup.doubleValue() ) );
         return value;
     }
 
