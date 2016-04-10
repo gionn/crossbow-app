@@ -169,6 +169,15 @@ public class MainActivity extends AppCompatActivity
         subtract( view, sizeView );
     }
 
+    public void reset( View view)
+    {
+        TextView sizeView = (TextView) findViewById( R.id.verticalSize );
+        sizeView.setText( zero().toString() );
+        sizeView = (TextView) findViewById( R.id.horizontalSize );
+        sizeView.setText( zero().toString() );
+        calculate( view );
+    }
+
     private void add( View view, TextView sizeView )
     {
         BigDecimal number = bigDecimalFactory( sizeView.getText().toString() );
