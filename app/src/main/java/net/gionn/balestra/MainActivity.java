@@ -33,6 +33,7 @@ public class MainActivity extends AppCompatActivity
     public static final String DB_JSON = "db.json";
     private Map<BigDecimal, BigDecimal> data = new HashMap<>();
     private List<Double> distanceList = new ArrayList<>();
+    private BigDecimal maxDistancePoint;
     private List<Double> correctionList = new ArrayList<>();
     private PolynomialSplineFunction splineFunction;
 
@@ -78,6 +79,7 @@ public class MainActivity extends AppCompatActivity
                 data.put( key, value );
                 // spline
                 distanceList.add( key.doubleValue() );
+                maxDistancePoint = key;
                 correctionList.add( value.doubleValue() );
             }
         }
@@ -170,7 +172,10 @@ public class MainActivity extends AppCompatActivity
     private void add( View view, TextView sizeView )
     {
         BigDecimal number = bigDecimalFactory( sizeView.getText().toString() );
-        sizeView.setText( number.add( STEP_FACTOR ).toString() );
+        BigDecimal newValue = number.add( STEP_FACTOR );
+        if ( newValue.compareTo( maxDistancePoint ) == 1 )
+            newValue = number;
+        sizeView.setText( newValue.toString() );
         calculate( view );
     }
 
