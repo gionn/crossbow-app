@@ -1,5 +1,10 @@
 package net.gionn.balestra;
 
+import android.content.Context;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -26,7 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class MainActivity extends AppCompatActivity
+public class MainActivity extends AppCompatActivity implements SensorEventListener
 {
 
     public static final BigDecimal STEP_FACTOR = new BigDecimal( "0.5" );
@@ -36,6 +41,8 @@ public class MainActivity extends AppCompatActivity
     private BigDecimal maxDistancePoint;
     private List<Double> correctionList = new ArrayList<>();
     private PolynomialSplineFunction splineFunction;
+    private SensorManager mSensorManager;
+    private Sensor mLight;
 
     @Override
     protected void onCreate( Bundle savedInstanceState )
@@ -56,6 +63,9 @@ public class MainActivity extends AppCompatActivity
         }
 
         splineFunction = new SplineInterpolator().interpolate( toDoubleArray( distanceList ), toDoubleArray( correctionList ) );
+
+        mSensorManager = (SensorManager) getSystemService( Context.SENSOR_SERVICE );
+        mLight = mSensorManager.getDefaultSensor( Sensor.TYPE_LIGHT );
     }
 
     private double[] toDoubleArray( List<Double> list)
@@ -216,5 +226,35 @@ public class MainActivity extends AppCompatActivity
     private BigDecimal bigDecimalFactory( BigDecimal value )
     {
         return bigDecimalFactory( value.toString() );
+    }
+
+    @Override
+    public void onSensorChanged( SensorEvent event )
+    {
+        if ( event.sensor.getType() == Sensor.TYPE_LIGHT)
+        {
+            TextView textView = (TextView) findViewById( R.id.currentLight );
+            textView.setText( "" + (int) event.values[0] );
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged( Sensor sensor, int accuracy )
+    {
+
+    }
+
+    @Override
+    protected void onResume() {
+        // Register a listener for the sensor.
+        super.onResume();
+        mSensorManager.registerListener(this, mLight, SensorManager.SENSOR_DELAY_NORMAL);
+    }
+
+    @Override
+    protected void onPause() {
+        // Be sure to unregister the sensor when the activity pauses.
+        super.onPause();
+        mSensorManager.unregisterListener(this);
     }
 }
