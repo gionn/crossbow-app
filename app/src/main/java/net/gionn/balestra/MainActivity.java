@@ -11,38 +11,34 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.CompoundButton;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
 import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
+
+import static net.gionn.balestra.ParseUtils.parseValue;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener
 {
 
-    public static final BigDecimal STEP_FACTOR = new BigDecimal( "0.5" );
     public static final String DB_JSON = "db.json";
-    private Map<BigDecimal, BigDecimal> data = new HashMap<>();
     private List<Double> distanceList = new ArrayList<>();
-    private BigDecimal maxDistancePoint;
     private List<Double> correctionList = new ArrayList<>();
-    private PolynomialSplineFunction splineFunction;
     private SensorManager mSensorManager;
     private Sensor mLight;
+    private Measurement currentMeasurement;
+    private MetricMeasurement metricMeasurement = new MetricMeasurement();
+    private PointMeasurement pointMeasurement = new PointMeasurement();
 
     @Override
     protected void onCreate( Bundle savedInstanceState )
@@ -62,44 +58,30 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             e.printStackTrace();
         }
 
-        splineFunction = new SplineInterpolator().interpolate( toDoubleArray( distanceList ), toDoubleArray( correctionList ) );
-
         mSensorManager = (SensorManager) getSystemService( Context.SENSOR_SERVICE );
         mLight = mSensorManager.getDefaultSensor( Sensor.TYPE_LIGHT );
-    }
 
-    private double[] toDoubleArray( List<Double> list)
-    {
-        Double[] doubles = list.toArray( new Double[list.size()] );
-        return ArrayUtils.toPrimitive( doubles );
+        currentMeasurement = metricMeasurement;
+        final Switch toggle = (Switch) findViewById(R.id.toggleButton);
+        toggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    currentMeasurement = pointMeasurement;
+                    toggle.setText( "Punti" );
+                } else {
+                    currentMeasurement = metricMeasurement;
+                    toggle.setText( "Centimetri" );
+                }
+                reset( buttonView );
+            }
+        });
     }
 
     private void initJsonData( String resource )
     {
-        try
-        {
-            JSONObject jsonObject = new JSONObject( resource );
-            Iterator<String> keys = jsonObject.keys();
-            while ( keys.hasNext() )
-            {
-                String nextKey = keys.next();
-                JSONArray dataArray = jsonObject.getJSONArray( nextKey );
-                BigDecimal key = bigDecimalFactory( dataArray.getDouble( 0 ) );
-                BigDecimal value = bigDecimalFactory( dataArray.getDouble( 1 ) );
-                data.put( key, value );
-                // spline
-                distanceList.add( key.doubleValue() );
-                maxDistancePoint = key;
-                correctionList.add( value.doubleValue() );
-            }
-        }
-        catch ( JSONException e )
-        {
-
-
-        }
+        metricMeasurement.parseJson( resource );
+        pointMeasurement.parseJson( resource );
     }
-
 
     @Override
     public boolean onCreateOptionsMenu( Menu menu )
@@ -126,19 +108,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return super.onOptionsItemSelected( item );
     }
 
-    public void calculate( View view )
+    public void recalculateAndUpdateView( View view )
     {
         TextView verticalSizeText = (TextView) findViewById( R.id.verticalSize );
         TextView horizontalSizeText = (TextView) findViewById( R.id.horizontalSize );
         TextView verticalResult = (TextView) findViewById( R.id.verticalResult );
         TextView horizontalResult = (TextView) findViewById( R.id.horizontalResult );
 
-        BigDecimal verticalInput = bigDecimalFactory( verticalSizeText.getText().toString() );
-        BigDecimal horizontalInput = bigDecimalFactory( horizontalSizeText.getText().toString() );
+        BigDecimal verticalInput = parseValue( verticalSizeText.getText().toString() );
+        BigDecimal horizontalInput = parseValue( horizontalSizeText.getText().toString() );
 
         BigDecimal verticalOutput = getOrNear( verticalInput );
         BigDecimal horizontalOutput = getOrNear( horizontalInput );
-
 
         verticalResult.setText( verticalOutput.toString() );
         horizontalResult.setText( horizontalOutput.toString() );
@@ -147,12 +128,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private BigDecimal getOrNear( BigDecimal lookup )
     {
         if ( lookup.compareTo( BigDecimal.ZERO ) == -1 )
-            return zero();
+            return BigDecimal.ZERO;
 
-        BigDecimal value = data.get( lookup );
-        if ( value == null)
-            value = bigDecimalFactory( splineFunction.value( lookup.doubleValue() ) );
-        return value;
+        return currentMeasurement.getValue( lookup );
     }
 
     public void verticalPlus( View view )
@@ -182,51 +160,33 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public void reset( View view)
     {
         TextView sizeView = (TextView) findViewById( R.id.verticalSize );
-        sizeView.setText( zero().toString() );
+        sizeView.setText( BigDecimal.ZERO.toString() );
         sizeView = (TextView) findViewById( R.id.horizontalSize );
-        sizeView.setText( zero().toString() );
-        calculate( view );
+        sizeView.setText( BigDecimal.ZERO.toString() );
+        recalculateAndUpdateView( view );
     }
 
     private void add( View view, TextView sizeView )
     {
-        BigDecimal number = bigDecimalFactory( sizeView.getText().toString() );
-        BigDecimal newValue = number.add( STEP_FACTOR );
-        if ( newValue.compareTo( maxDistancePoint ) == 1 )
+        BigDecimal number = parseValue( sizeView.getText().toString() );
+        BigDecimal newValue = number.add( currentMeasurement.getStepFactor() );
+        if ( newValue.compareTo( currentMeasurement.getMaxValue() ) == 1 )
             newValue = number;
         sizeView.setText( newValue.toString() );
-        calculate( view );
+        recalculateAndUpdateView( view );
     }
 
     private void subtract( View view, TextView sizeView )
     {
-        BigDecimal number = bigDecimalFactory( sizeView.getText().toString() );
-        BigDecimal subtracted = number.subtract( STEP_FACTOR );
-        if ( subtracted.compareTo( BigDecimal.ZERO ) == -1)
-            subtracted = zero();
+        BigDecimal number = parseValue( sizeView.getText().toString() );
+        BigDecimal subtracted = number.subtract( currentMeasurement.getStepFactor() );
+        if ( subtracted.compareTo( currentMeasurement.getMinValue() ) == -1)
+            subtracted = BigDecimal.ZERO;
         sizeView.setText( subtracted.toString() );
-        calculate( view );
+        recalculateAndUpdateView( view );
     }
 
-    private BigDecimal bigDecimalFactory( String value )
-    {
-        return new BigDecimal( value ).setScale( 2, BigDecimal.ROUND_HALF_EVEN );
-    }
 
-    private BigDecimal bigDecimalFactory( double aDouble )
-    {
-        return bigDecimalFactory( String.valueOf( aDouble ) );
-    }
-
-    private BigDecimal zero()
-    {
-        return bigDecimalFactory( BigDecimal.ZERO );
-    }
-
-    private BigDecimal bigDecimalFactory( BigDecimal value )
-    {
-        return bigDecimalFactory( value.toString() );
-    }
 
     @Override
     public void onSensorChanged( SensorEvent event )
