@@ -11,6 +11,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -63,14 +64,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         currentMeasurement = metricMeasurement;
         final Switch toggle = (Switch) findViewById(R.id.toggleButton);
+        final TextView orizontalLabel = (TextView) findViewById(R.id.textView);
+        final Button hMinus = (Button) findViewById(R.id.horizontalMinus);
+        final Button hPlus = (Button) findViewById(R.id.horizontalPlus);
+
         toggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     currentMeasurement = pointMeasurement;
                     toggle.setText( "Punti" );
+                    orizontalLabel.setText( "Punteggio" );
+                    hMinus.setEnabled( false );
+                    hPlus.setEnabled( false );
                 } else {
                     currentMeasurement = metricMeasurement;
                     toggle.setText( "Centimetri" );
+                    orizontalLabel.setText( "Distanza verticale (cm)" );
+                    hMinus.setEnabled( true );
+                    hPlus.setEnabled( true );
+
                 }
                 reset( buttonView );
             }
