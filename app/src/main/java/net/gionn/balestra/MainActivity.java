@@ -57,28 +57,31 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         currentMeasurement = metricMeasurement;
         final Switch toggle = (Switch) findViewById(R.id.toggleButton);
         final TextView horizontalLabel = (TextView) findViewById(R.id.textView);
+        final TextView verticalLabel = (TextView) findViewById(R.id.textView4);
         final Button hMinus = (Button) findViewById(R.id.horizontalMinus);
         final Button hPlus = (Button) findViewById(R.id.horizontalPlus);
 
-        toggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    currentMeasurement = pointMeasurement;
-                    toggle.setText("Punti");
-                    horizontalLabel.setText("Punteggio");
-                    hMinus.setEnabled(false);
-                    hPlus.setEnabled(false);
-                } else {
-                    currentMeasurement = metricMeasurement;
-                    toggle.setText("Centimetri");
-                    horizontalLabel.setText("Distanza verticale (cm)");
-                    hMinus.setEnabled(true);
-                    hPlus.setEnabled(true);
-
+        if ( toggle != null && hMinus != null && hPlus != null && horizontalLabel != null && verticalLabel != null )
+            toggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    if (isChecked) {
+                        currentMeasurement = pointMeasurement;
+                        toggle.setText("Punti");
+                        horizontalLabel.setText("Punteggio");
+                        verticalLabel.setText("");
+                        hMinus.setEnabled(false);
+                        hPlus.setEnabled(false);
+                    } else {
+                        currentMeasurement = metricMeasurement;
+                        toggle.setText("Centimetri");
+                        horizontalLabel.setText("Distanza orizzontale (cm)");
+                        verticalLabel.setText("Distanza verticale (cm)");
+                        hMinus.setEnabled(true);
+                        hPlus.setEnabled(true);
+                    }
+                    reset(buttonView);
                 }
-                reset(buttonView);
-            }
-        });
+            });
     }
 
     @Override
