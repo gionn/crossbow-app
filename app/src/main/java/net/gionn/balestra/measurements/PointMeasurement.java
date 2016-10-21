@@ -32,6 +32,11 @@ public class PointMeasurement extends BaseMeasurement {
     }
 
     @Override
+    public BigDecimal getDefaultValue() {
+        return new BigDecimal(27);
+    }
+
+    @Override
     protected void parseJson(String resource) {
         try {
             JSONObject jsonObject = new JSONObject(resource);

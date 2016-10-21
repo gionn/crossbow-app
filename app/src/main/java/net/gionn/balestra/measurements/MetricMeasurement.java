@@ -22,6 +22,11 @@ public class MetricMeasurement extends BaseMeasurement {
     }
 
     @Override
+    public BigDecimal getDefaultValue() {
+        return BigDecimal.ZERO;
+    }
+
+    @Override
     public BigDecimal getMaxValue() {
         return maxValue;
     }

@@ -9,5 +9,7 @@ public interface Measurement {
 
     BigDecimal getMinValue();
 
+    BigDecimal getDefaultValue();
+
     BigDecimal getValue(BigDecimal key);
 }

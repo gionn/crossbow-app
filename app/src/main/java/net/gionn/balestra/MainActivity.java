@@ -149,9 +149,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     public void reset(View view) {
         TextView sizeView = (TextView) findViewById(R.id.verticalSize);
-        sizeView.setText(BigDecimal.ZERO.toString());
+        sizeView.setText( currentMeasurement.getDefaultValue().toString() );
         sizeView = (TextView) findViewById(R.id.horizontalSize);
-        sizeView.setText(BigDecimal.ZERO.toString());
+        sizeView.setText( currentMeasurement.getDefaultValue().toString() );
         recalculateAndUpdateView(view);
     }
 
