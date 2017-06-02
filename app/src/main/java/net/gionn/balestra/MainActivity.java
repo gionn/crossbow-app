@@ -67,17 +67,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     if (isChecked) {
                         currentMeasurement = pointMeasurement;
                         toggle.setText("Punti");
-                        horizontalLabel.setText("Punteggio");
-                        verticalLabel.setText("");
-                        hMinus.setEnabled(false);
-                        hPlus.setEnabled(false);
+                        horizontalLabel.setText("Punteggio Verticale");
+                        verticalLabel.setText("Punteggio Orizzontale");
                     } else {
                         currentMeasurement = metricMeasurement;
                         toggle.setText("Centimetri");
                         horizontalLabel.setText("Distanza orizzontale (cm)");
                         verticalLabel.setText("Distanza verticale (cm)");
-                        hMinus.setEnabled(true);
-                        hPlus.setEnabled(true);
                     }
                     reset(buttonView);
                 }
