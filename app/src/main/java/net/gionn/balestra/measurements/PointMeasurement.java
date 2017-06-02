@@ -33,7 +33,7 @@ public class PointMeasurement extends BaseMeasurement {
 
     @Override
     public BigDecimal getDefaultValue() {
-        return new BigDecimal(27);
+        return new BigDecimal(27).setScale(2, BigDecimal.ROUND_HALF_UP);
     }
 
     @Override
